@@ -56,21 +56,38 @@
 
     <aside class="browser" aria-label="القنوات">
       <div class="filters">
-        <div class="seg" id="langSeg" role="radiogroup" aria-label="اللغة">
-          <button data-lang="all" class="on">الكل</button>
-          <button data-lang="ara">العربية</button>
-          <button data-lang="fra">Français</button>
+        <div class="row">
+          <select id="srcSel" class="src-sel" aria-label="مصدر القنوات"></select>
+          <button id="btnAdd" class="icon-btn" title="إضافة قائمة M3U أو Xtream" aria-label="إضافة قائمة">＋</button>
+          <button id="btnSrcDel" class="icon-btn" title="حذف هذه القائمة" aria-label="حذف القائمة" hidden>🗑</button>
         </div>
-        <div class="chips" id="catChips" role="radiogroup" aria-label="الصنف">
-          <button data-cat="all" class="on">الكل</button>
-          <button data-cat="general">عامة</button>
-          <button data-cat="news">إخبارية</button>
-          <button data-cat="doc">وثائقية وثقافية</button>
-          <button data-cat="fav">★ المفضلة</button>
+        <div id="openFilters" class="stack">
+          <div class="seg" id="langSeg" role="radiogroup" aria-label="اللغة">
+            <button data-lang="all" class="on">الكل</button>
+            <button data-lang="ara">العربية</button>
+            <button data-lang="fra">Français</button>
+          </div>
+          <div class="chips" id="catChips" role="radiogroup" aria-label="الصنف">
+            <button data-cat="all" class="on">الكل</button>
+            <button data-cat="general">عامة</button>
+            <button data-cat="news">إخبارية</button>
+            <button data-cat="doc">وثائقية وثقافية</button>
+            <button data-cat="fav">★ المفضلة</button>
+          </div>
+        </div>
+        <div id="customFilters" class="stack" hidden>
+          <div class="chips" id="kindChips" role="radiogroup" aria-label="النوع">
+            <button data-kind="all" class="on">الكل</button>
+            <button data-kind="live">مباشر</button>
+            <button data-kind="movie">أفلام</button>
+            <button data-kind="series">مسلسلات</button>
+            <button data-kind="fav">★ المفضلة</button>
+          </div>
         </div>
         <div class="row">
-          <input id="search" type="search" placeholder="ابحث عن قناة…  ( / )" autocomplete="off" aria-label="بحث">
+          <input id="search" type="search" placeholder="ابحث…  ( / )" autocomplete="off" aria-label="بحث">
           <select id="country" aria-label="البلد"><option value="">كل البلدان</option></select>
+          <select id="group" aria-label="المجموعة" hidden></select>
         </div>
         <div class="status">
           <span id="count"></span>
@@ -94,6 +111,13 @@
         <li>افتح رابط التطبيق في Chrome، ثم القائمة ⋮ ← «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».</li>
         <li>إذا لم تشتغل قناة داخل التطبيق، اضغط «فتح في مشغّل خارجي» واختر VLC أو MX Player.</li>
       </ul>
+      <h3>إضافة قوائمك (M3U أو Xtream)</h3>
+      <ul>
+        <li>اضغط <strong>＋</strong> بجانب قائمة المصادر، ثم اختر: رابط قائمة M3U، أو ملف M3U من جهازك، أو حساب Xtream (عنوان الخادم واسم المستخدم وكلمة السر).</li>
+        <li>تظهر القائمة في المصادر، ويمكنك تصفيتها حسب المجموعة أو النوع (مباشر، أفلام، مسلسلات)، والبحث فيها.</li>
+        <li>على الحاسوب، افتح التطبيق من اختصاره المثبّت: يعمل معه «المساعد المحلي» الذي يفتح الروابط التي يمنعها المتصفح عادةً.</li>
+        <li>إذا لم يشتغل فيلم، فقد يكون ترميزه غير مدعوم في المتصفح؛ افتحه في VLC.</li>
+      </ul>
       <h3 id="vpnHelp">تجاوز الحجب الجغرافي (VPN)</h3>
       <ul>
         <li>بعض القنوات لا تُبث إلا داخل بلدها، وتظهر عليها علامة «محجوبة جغرافياً».</li>
@@ -111,9 +135,51 @@
     </form>
   </dialog>
 
+  <dialog id="addDlg">
+    <form id="addForm" method="dialog">
+      <h2>إضافة قائمة قنوات</h2>
+      <div class="seg" id="addType" role="radiogroup" aria-label="نوع القائمة">
+        <button type="button" data-t="url" class="on">رابط M3U</button>
+        <button type="button" data-t="file">ملف من الجهاز</button>
+        <button type="button" data-t="xtream">Xtream</button>
+      </div>
+      <label class="fld">اسم القائمة (اختياري)
+        <input id="addName" autocomplete="off" placeholder="مثلاً: قنواتي">
+      </label>
+      <div data-pane="url">
+        <label class="fld">رابط القائمة
+          <input id="addUrl" type="url" dir="ltr" autocomplete="off" placeholder="https://example.com/playlist.m3u">
+        </label>
+      </div>
+      <div data-pane="file" hidden>
+        <label class="fld">ملف القائمة (.m3u)
+          <input id="addFile" type="file" accept=".m3u,.m3u8,.txt,audio/x-mpegurl,application/x-mpegurl">
+        </label>
+      </div>
+      <div data-pane="xtream" hidden>
+        <label class="fld">عنوان الخادم
+          <input id="xtServer" dir="ltr" autocomplete="off" placeholder="http://server.com:8080">
+        </label>
+        <label class="fld">اسم المستخدم
+          <input id="xtUser" dir="ltr" autocomplete="off">
+        </label>
+        <label class="fld">كلمة السر
+          <input id="xtPass" type="password" dir="ltr" autocomplete="off">
+        </label>
+      </div>
+      <p class="note">التطبيق لا يوفّر أي محتوى: أضف فقط القوائم التي لك حق استعمالها. تُحفظ القوائم وبيانات الدخول على هذا الجهاز فقط.</p>
+      <p id="addStatus" class="add-status" role="status"></p>
+      <div class="dlg-actions">
+        <button type="submit" id="addOk" class="primary">إضافة</button>
+        <button type="button" id="addCancel">إلغاء</button>
+      </div>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="vendor/hls.min.js"></script>
+  <script src="vendor/mpegts.js"></script>
   <script src="data/fallback.js"></script>
   <script src="app.js"></script>
 </body>
