@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>تلفزيون مفتوح</title>
+  <meta name="description" content="مشاهدة القنوات العربية والفرنكوفونية المجانية: العامة والإخبارية والوثائقية">
+  <meta name="theme-color" content="#0b1e25">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/favicon.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" width="34" height="34">
+      <div>
+        <h1>تلفزيون مفتوح</h1>
+        <p class="sub">قنوات عربية وفرنكوفونية مجانية</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="btnRefresh" class="icon-btn" title="تحديث قائمة القنوات" aria-label="تحديث قائمة القنوات">⟳</button>
+      <button id="btnHelp" class="icon-btn" title="طريقة التثبيت والاستعمال" aria-label="مساعدة">؟</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage" aria-label="المشغّل">
+      <div class="player-wrap">
+        <video id="video" controls playsinline preload="none"></video>
+        <div id="overlay" class="overlay">
+          <div class="overlay-box">
+            <div id="ovIcon" class="ov-icon">📺</div>
+            <p id="ovTitle" class="ov-title">اختر قناة من القائمة</p>
+            <p id="ovText" class="ov-text">يتم جلب أحدث روابط البث المفتوح تلقائياً.</p>
+            <div id="ovActions" class="ov-actions"></div>
+          </div>
+        </div>
+      </div>
+      <div class="now" id="nowBar" hidden>
+        <img id="nowLogo" alt="" referrerpolicy="no-referrer">
+        <div class="now-info">
+          <strong id="nowName"></strong>
+          <span id="nowMeta"></span>
+        </div>
+        <div class="now-actions">
+          <button id="btnPrev" class="icon-btn" title="القناة السابقة (↑)" aria-label="القناة السابقة">▲</button>
+          <button id="btnNext" class="icon-btn" title="القناة التالية (↓)" aria-label="القناة التالية">▼</button>
+          <button id="btnFav" class="icon-btn" title="إضافة إلى المفضلة" aria-label="المفضلة">☆</button>
+          <button id="btnExternal" class="icon-btn" title="فتح في مشغّل خارجي" aria-label="مشغّل خارجي">⇱</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="browser" aria-label="القنوات">
+      <div class="filters">
+        <div class="seg" id="langSeg" role="radiogroup" aria-label="اللغة">
+          <button data-lang="all" class="on">الكل</button>
+          <button data-lang="ara">العربية</button>
+          <button data-lang="fra">Français</button>
+        </div>
+        <div class="chips" id="catChips" role="radiogroup" aria-label="الصنف">
+          <button data-cat="all" class="on">الكل</button>
+          <button data-cat="general">عامة</button>
+          <button data-cat="news">إخبارية</button>
+          <button data-cat="doc">وثائقية وثقافية</button>
+          <button data-cat="fav">★ المفضلة</button>
+        </div>
+        <div class="row">
+          <input id="search" type="search" placeholder="ابحث عن قناة…  ( / )" autocomplete="off" aria-label="بحث">
+          <select id="country" aria-label="البلد"><option value="">كل البلدان</option></select>
+        </div>
+        <div class="status">
+          <span id="count"></span>
+          <span id="source"></span>
+        </div>
+      </div>
+      <ul id="list" class="list" role="listbox" aria-label="قائمة القنوات"></ul>
+    </aside>
+  </main>
+
+  <dialog id="help">
+    <form method="dialog">
+      <h2>طريقة الاستعمال</h2>
+      <h3>على الحاسوب</h3>
+      <ul>
+        <li>اختر قناة، ثم استعمل الأسهم <kbd>↑</kbd> <kbd>↓</kbd> للتنقل بين القنوات، و<kbd>F</kbd> لملء الشاشة، و<kbd>M</kbd> لكتم الصوت.</li>
+        <li>للتثبيت كتطبيق: في متصفح Edge أو Chrome اضغط أيقونة «تثبيت التطبيق» في شريط العنوان (تظهر عند فتح التطبيق من رابط على الإنترنت).</li>
+      </ul>
+      <h3>على الأندرويد</h3>
+      <ul>
+        <li>افتح رابط التطبيق في Chrome، ثم القائمة ⋮ ← «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».</li>
+        <li>إذا لم تشتغل قناة داخل التطبيق، اضغط «فتح في مشغّل خارجي» واختر VLC أو MX Player.</li>
+      </ul>
+      <h3 id="vpnHelp">تجاوز الحجب الجغرافي (VPN)</h3>
+      <ul>
+        <li>بعض القنوات لا تُبث إلا داخل بلدها، وتظهر عليها علامة «محجوبة جغرافياً».</li>
+        <li>ثبّت تطبيق VPN موثوقاً على الهاتف أو الحاسوب، مثل Proton VPN (فيه خطة مجانية، لكن بلدانها محدودة)، أو خدمة مدفوعة تتيح لك اختيار البلد.</li>
+        <li>شغّل الـVPN واختر خادماً في بلد القناة (مثلاً فرنسا لقنوات فرنسا، وكندا لقنوات كندا)، ثم ارجع إلى التطبيق واضغط «إعادة المحاولة».</li>
+        <li>تجنّب تطبيقات الـVPN المجانية المجهولة لأنها قد تجمع بياناتك. وأطفئ الـVPN عند مشاهدة القنوات المحلية، فقد يحجبها بدوره.</li>
+        <li>الـVPN لا يفيد مع القنوات المتوقفة؛ لا يعالج إلا الحجب الجغرافي.</li>
+      </ul>
+      <h3>ملاحظات</h3>
+      <ul>
+        <li>القنوات مأخوذة من القائمة العامة المفتوحة <a href="https://github.com/iptv-org/iptv" target="_blank" rel="noopener">iptv-org</a> لبثٍّ يتيحه أصحابه مجاناً، وتُحدَّث تلقائياً عند كل فتح.</li>
+        <li>بعض القنوات قد تتوقف مؤقتاً أو تكون محجوبة جغرافياً خارج بلدها؛ يجرّب التطبيق تلقائياً الروابط البديلة إن وُجدت.</li>
+      </ul>
+      <div class="dlg-actions"><button class="primary">فهمت</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/hls.min.js"></script>
+  <script src="data/fallback.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
