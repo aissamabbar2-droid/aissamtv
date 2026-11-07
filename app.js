@@ -229,7 +229,14 @@
     const t = setTimeout(() => ctl.abort(), ms);
     try {
       const r = await fetch(url, { signal: ctl.signal, cache: 'no-cache' });
-      if (!r.ok) { const err = new Error('HTTP ' + r.status); err.status = r.status; throw err; }
+      if (!r.ok) {
+        const err = new Error('HTTP ' + r.status);
+        err.status = r.status;
+        // خطأ صادر عن المساعد نفسه (لم يصل ردّ من الخادم) أم ردّ حقيقي من الخادم؟
+        err.helper = r.headers.get('X-OpenTV-Error') === '1';
+        try { err.detail = (await r.text()).slice(0, 300); } catch { err.detail = ''; }
+        throw err;
+      }
       return await r.text();
     } finally { clearTimeout(t); }
   }
@@ -396,7 +403,22 @@
   }
   const hostOf = (u) => { try { return new URL(u).hostname; } catch { return 'قائمتي'; } };
 
+  // أسباب فشل المساعد في الوصول إلى الخادم (رموز ويندوز وأندرويد)
+  const HELPER_REASONS = [
+    [/NameResolution|UnknownHost/i, 'تعذّر العثور على عنوان الخادم: قد يكون الرابط غير صحيح، أو أن مزوّد الإنترنت يحجب هذا الخادم (جرّب تغيير DNS أو استعمال VPN).'],
+    [/Timeout|timed out/i, 'لم يردّ الخادم في الوقت المحدد. القوائم الكبيرة تحتاج وقتاً، أو أن الخادم مشغول؛ حاول مرة أخرى بعد قليل.'],
+    [/ConnectFailure|ConnectException|refused/i, 'الخادم لا يقبل الاتصال من هذا الجهاز: قد يكون متوقفاً، أو محجوباً في شبكتك.'],
+    [/SecureChannel|TrustFailure|SSL/i, 'تعذّر إنشاء اتصال آمن (https) مع الخادم.'],
+    [/ConnectionClosed|ReceiveFailure|KeepAlive|reset|closed/i, 'قطع الخادم الاتصال قبل الإرسال. بعض الخوادم لا تقبل إلا تطبيقات معيّنة، أو تسمح بجهاز واحد في نفس الوقت (أغلق التطبيق على Google TV وجرّب).'],
+    [/ProtocolViolation/i, 'ردّ الخادم بصيغة غير قياسية.'],
+  ];
+
   function fetchErrorText(err) {
+    if (err && err.helper) {
+      const d = err.detail || '';
+      const hit = HELPER_REASONS.find(([re]) => re.test(d));
+      return 'تعذّر على المساعد الوصول إلى خادم القائمة. ' + (hit ? hit[1] : `(التفاصيل: ${d.split('|').pop()})`);
+    }
     if (err && err.status && !state.proxy) {
       // كثير من خوادم IPTV ترفض الطلبات القادمة من المتصفح وتقبل تطبيقات المشغّلات فقط
       return `رفض الخادم الطلب (الرمز ${err.status}). كثير من خوادم IPTV لا تقبل الطلبات من المتصفح. ` +

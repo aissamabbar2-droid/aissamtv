@@ -61,14 +61,23 @@ final class Relay {
             if (path.equals("p")) return relay(uri, method == null ? "GET" : method.toUpperCase(Locale.ROOT), requestHeaders);
             return text(404, "not found");
         } catch (Exception e) {
-            return text(502, String.valueOf(e.getMessage()));
+            return helperError(e);
         }
+    }
+
+    /** خطأ من المساعد نفسه (لم يصل ردّ من الخادم): نعلّمه حتى تعرض الواجهة السبب الحقيقي. */
+    private static WebResourceResponse helperError(Exception e) {
+        Map<String, String> h = cors();
+        h.put("X-OpenTV-Error", "1");
+        String body = e.getClass().getSimpleName() + "|" + e.getMessage();
+        return new WebResourceResponse("text/plain", "utf-8", 502, "Error", h,
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)));
     }
 
     private static Map<String, String> cors() {
         Map<String, String> h = new HashMap<>();
         h.put("Access-Control-Allow-Origin", "*");
-        h.put("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
+        h.put("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges, X-OpenTV-Error");
         h.put("Cache-Control", "no-store");
         return h;
     }
@@ -121,7 +130,8 @@ final class Relay {
             c.setInstanceFollowRedirects(false);
             c.setRequestMethod(method);
             c.setConnectTimeout(20000);
-            c.setReadTimeout(30000);
+            // بعض خوادم IPTV تحتاج وقتاً طويلاً لتجهيز القوائم الكبيرة
+            c.setReadTimeout(90000);
             c.setRequestProperty("User-Agent", ua == null || ua.isEmpty() ? DEFAULT_UA : ua);
             if (ref != null && !ref.isEmpty()) c.setRequestProperty("Referer", ref);
             c.setRequestProperty("Accept", "*/*");
