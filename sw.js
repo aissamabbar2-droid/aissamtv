@@ -1,5 +1,5 @@
 /* عامل الخدمة: يحفظ ملفات التطبيق ليفتح بسرعة، ولا يتدخل في روابط البث */
-const CACHE = 'tv-shell-v3';
+const CACHE = 'tv-shell-v4';
 const SHELL = [
   './', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'vendor/hls.min.js', 'vendor/mpegts.js', 'data/fallback.js',
@@ -21,6 +21,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return; // البث والقوائم: مباشرة من الشبكة
+  if (url.pathname.includes('/__opentv__/')) return; // طلبات مساعد تطبيق الأندرويد: لا تُحفظ أبداً
   // الشبكة أولاً ثم النسخة المحفوظة (لتصل التحديثات فوراً)
   e.respondWith(
     fetch(e.request)

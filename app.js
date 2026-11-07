@@ -49,7 +49,11 @@
   };
 
   const isAndroid = /Android/i.test(navigator.userAgent);
+  const isNativeApp = !!(window.OpenTVNative && window.OpenTVNative.proxyConfig);
   const isHttpsPage = location.protocol === 'https:';
+  const APK_URL = 'https://github.com/aissamabbar2-droid/aissamtv/releases/latest/download/OpenTV.apk';
+  // على متصفح الهاتف: تطبيق الأندرويد يفتح ما يمنعه المتصفح
+  const needsApk = () => isAndroid && !isNativeApp && !state.proxy;
   const regionName = (() => {
     try { const dn = new Intl.DisplayNames(['ar'], { type: 'region' }); return (c) => { try { return dn.of(c) || c; } catch { return c; } }; }
     catch { return (c) => c; }
@@ -251,19 +255,25 @@
     throw e;
   }
 
-  // ---------- المساعد المحلي (نسخة الحاسوب المثبّتة) ----------
+  // ---------- المساعد المحلي (نسخة الحاسوب المثبّتة، أو تطبيق الأندرويد) ----------
   async function initProxy() {
-    const local = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-    if (!local) return;
-    await new Promise((res) => {
-      const s = document.createElement('script');
-      s.src = 'data/local.js';
-      s.onload = res; s.onerror = res;
-      document.head.appendChild(s);
-    });
-    const cfg = window.LOCAL_PROXY;
+    let cfg = null;
+    if (isNativeApp) {
+      try { cfg = JSON.parse(window.OpenTVNative.proxyConfig() || 'null'); } catch { cfg = null; }
+    } else {
+      const local = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+      if (!local) return;
+      await new Promise((res) => {
+        const s = document.createElement('script');
+        s.src = 'data/local.js';
+        s.onload = res; s.onerror = res;
+        document.head.appendChild(s);
+      });
+      cfg = window.LOCAL_PROXY;
+    }
     if (!cfg || !cfg.token) return;
-    const base = `http://127.0.0.1:${cfg.port}`;
+    // تطبيق الأندرويد يعطي عنواناً على نطاق الصفحة نفسه؛ نسخة الحاسوب تعطي منفذاً محلياً
+    const base = cfg.base || `http://127.0.0.1:${cfg.port}`;
     try {
       const txt = await fetchText(`${base}/ping?t=${cfg.token}`, 2500);
       if (txt.trim() === 'ok') {
@@ -390,6 +400,7 @@
     if (err && err.status) return `ردّ الخادم بالخطأ ${err.status}. تحقق من الرابط أو من بيانات الدخول.`;
     if (err && err.name === 'AbortError') return 'انتهت مهلة التحميل. القائمة كبيرة جداً أو الخادم بطيء؛ حاول مرة أخرى.';
     if (err && err.blocked) {
+      if (needsApk()) return 'هذا الخادم لا يسمح بفتح القائمة من داخل المتصفح. ثبّت تطبيق الأندرويد (الرابط في نافذة المساعدة ؟) فهو يفتح هذه القوائم.';
       return 'هذا الخادم لا يسمح بفتح القائمة من داخل المتصفح. على الحاسوب: افتح التطبيق من اختصاره المثبّت (يعمل معه «المساعد المحلي»). أو نزّل ملف القائمة واختر «ملف من الجهاز».';
     }
     return 'تعذّر الوصول إلى الرابط. تأكد من صحته ومن اتصالك بالإنترنت.';
@@ -761,17 +772,23 @@
     if (ch.kind === 'movie' || ch.kind === 'series') {
       text = 'قد يكون ترميز هذا الفيلم غير مدعوم داخل المتصفح (مثل صوت AC3 أو فيديو HEVC)، أو أن الرابط منتهٍ. جرّب فتحه في VLC.';
     } else if (httpOnHttps && !state.proxy) {
-      text = 'هذا البث لا يُفتح داخل المتصفح من رابط آمن (https). افتحه في مشغّل خارجي، أو استعمل نسخة الحاسوب المثبّتة.';
+      text = needsApk()
+        ? 'هذا البث لا يُفتح داخل المتصفح. ثبّت تطبيق الأندرويد ليعمل، أو افتحه في VLC.'
+        : 'هذا البث لا يُفتح داخل المتصفح من رابط آمن (https). افتحه في مشغّل خارجي، أو استعمل نسخة الحاسوب المثبّتة.';
     } else if (anyGeo) {
       const where = ch.country ? ' في ' + regionName(ch.country) : ' في بلد القناة';
       text = `هذه القناة محجوبة جغرافياً. لتجاوز الحجب: شغّل تطبيق VPN واختر خادماً${where}، ثم اضغط «إعادة المحاولة».`;
     } else if (!isOpenSource() && !state.proxy) {
-      text = 'قد يمنع الخادم التشغيل داخل المتصفح. على الحاسوب افتح التطبيق من اختصاره المثبّت ليعمل «المساعد المحلي»، أو افتح القناة في VLC.';
+      text = needsApk()
+        ? 'قد يمنع الخادم التشغيل داخل المتصفح. ثبّت تطبيق الأندرويد ليفتح هذه القوائم، أو افتح القناة في VLC.'
+        : 'قد يمنع الخادم التشغيل داخل المتصفح. على الحاسوب افتح التطبيق من اختصاره المثبّت ليعمل «المساعد المحلي»، أو افتح القناة في VLC.';
     }
     const actions = [
       mkBtn('إعادة المحاولة', () => { state.attempts = buildAttempts(ch); state.attemptIdx = 0; state.reconnects = 0; tryAttempt(); }, anyGeo),
-      mkBtn(isAndroid ? 'فتح في VLC / مشغّل آخر' : 'فتح في VLC', () => openExternal(ch), !anyGeo),
-      anyGeo ? mkBtn('كيف أستعمل VPN؟', openVpnHelp) : mkBtn('التالي', () => step(1)),
+      mkBtn(isAndroid ? 'فتح في VLC / مشغّل آخر' : 'فتح في VLC', () => openExternal(ch), !anyGeo && !needsApk()),
+      anyGeo ? mkBtn('كيف أستعمل VPN؟', openVpnHelp)
+        : needsApk() ? mkBtn('تحميل تطبيق الأندرويد', () => { location.href = APK_URL; }, true)
+        : mkBtn('التالي', () => step(1)),
     ];
     showOverlay({ icon: '⚠️', title: 'تعذّر تشغيل ' + ch.name, text, actions });
   }
