@@ -1,5 +1,5 @@
 /* عامل الخدمة: يحفظ ملفات التطبيق ليفتح بسرعة، ولا يتدخل في روابط البث */
-const CACHE = 'tv-shell-v4';
+const CACHE = 'tv-shell-v7';
 const SHELL = [
   './', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'vendor/hls.min.js', 'vendor/mpegts.js', 'data/fallback.js',
